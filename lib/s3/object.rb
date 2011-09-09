@@ -5,7 +5,7 @@ module S3
     include Parser
     extend Forwardable
 
-    attr_accessor :content_type, :content_disposition, :content_encoding, :cache_control
+    attr_accessor :content_type, :content_disposition, :content_encoding, :cache_control, :vary
     attr_reader :last_modified, :etag, :size, :bucket, :key, :acl, :storage_class
     attr_writer :content
 
@@ -19,7 +19,7 @@ module S3
     def ==(other)
       other.equal?(self) || (other.instance_of?(self.class) && self.key == other.key && self.bucket == other.bucket)
     end
-
+    
     # Returns full key of the object: e.g. <tt>bucket-name/object/key.ext</tt>
     def full_key
       [name, key].join("/")
@@ -200,6 +200,7 @@ module S3
       self.etag = options[:etag]
       self.size = options[:size]
       self.cache_control = options[:cache_control]
+      self.vary = options[:vary]
     end
 
     def object_request(method, options = {})
@@ -230,6 +231,7 @@ module S3
       headers[:content_encoding] = @content_encoding if @content_encoding
       headers[:content_disposition] = @content_disposition if @content_disposition
       headers[:cache_control] = @cache_control if @cache_control
+      headers[:vary] = @vary if @vary
       headers
     end
 
@@ -240,6 +242,7 @@ module S3
       self.cache_control = response["cache-control"] if response.key?("cache-control")
       self.content_encoding = response["content-encoding"] if response.key?("content-encoding")
       self.last_modified = response["last-modified"] if response.key?("last-modified")
+      self.vary = response["Vary"] if response.key?("vary")
       if response.key?("content-range")
         self.size = response["content-range"].sub(/[^\/]+\//, "").to_i
       else

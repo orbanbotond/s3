@@ -13,6 +13,9 @@ class ObjectTest < Test::Unit::TestCase
     @object_carmen = S3::Object.send(:new, @bucket_images, :key => "Carmen.png")
     @object_mac = S3::Object.send(:new, @bucket_images, :key => "Mac.png", :cache_control => "max-age=315360000")
     @object_mac.content = "test2"
+    
+    @object_vary = S3::Object.send(:new, @bucket_images, :key => "Mac.png", :vary => "Accept-Encoding")
+    @object_vary.content = "test2"
 
     @response_binary = Net::HTTPOK.new("1.1", "200", "OK")
     @response_binary.stubs(:body).returns("test".respond_to?(:force_encoding) ? "test".force_encoding(Encoding::BINARY) : "test")
@@ -105,6 +108,12 @@ class ObjectTest < Test::Unit::TestCase
   test "save" do
     @object_lena.expects(:object_request).with(:put, :body=>"test", :headers=>{ :x_amz_acl=>"public-read", :x_amz_storage_class=>"STANDARD", :content_type=>"application/octet-stream" }).returns(@response_binary)
     assert @object_lena.save
+  end
+
+  test "save with vary header" do
+    assert_equal "Accept-Encoding", @object_vary.vary
+    @object_vary.expects(:object_request).with(:put, :body=>"test2", :headers=>{ :x_amz_acl=>"public-read", :x_amz_storage_class=>"STANDARD", :content_type=>"application/octet-stream", :vary => "Accept-Encoding" }).returns(@response_binary)
+    assert @object_vary.save
   end
 
   test "save with cache control headers" do
